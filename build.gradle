@@ -1,9 +1,9 @@
 plugins {
     id 'java'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
-    id "io.freefair.lombok" version "6.5.0.2"
-    id 'kr.entree.spigradle' version '2.4.3'
-    id "xyz.jpenilla.run-paper" version "2.1.0"
+    id "io.freefair.lombok" version "8.6"
+    id 'net.minecrell.plugin-yml.bukkit' version '0.6.0'
+    id "xyz.jpenilla.run-paper" version "2.2.3"
 }
 
 group = 'cc.happyareabean'
@@ -11,9 +11,10 @@ version = '1.0.0'
 
 def mcVersion = "1.8.8"
 
-spigot {
+bukkit {
+    main = "cc.happyareabean.mcdevtoolbox.MCDevToolbox"
     authors = ['HappyAreaBean']
-    excludeLibraries = ['*']
+    generateLibrariesJson = false
 }
 
 repositories {
@@ -40,17 +41,18 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
-def runDirectoryDir = project.hasProperty('runPaper.runDirectory') ? project.getProperty('runPaper.runDirectory') : "${project.rootProject.projectDir}/.run"
-def runServerJar = project.hasProperty('runPaper.serverJar') ? project.getProperty('runPaper.serverJar') : null
+String runVersion = project.hasProperty('runPaper.runVersion') ? property('runPaper.runVersion') : mcVersion
+String runDirectoryDir = project.hasProperty('runPaper.runDirectory') ? property('runPaper.runDirectory') : "${project.rootProject.projectDir}/.run"
+String runServerJar = project.hasProperty('runPaper.serverJar') ? property('runPaper.serverJar') : null
 
 tasks {
     runServer {
         // Configure the Minecraft version for our task.
         // This is the only required configuration besides applying the plugin.
         // Your plugin's jar (or shadowJar if present) will be used automatically.
-        minecraftVersion(mcVersion)
+        minecraftVersion(runVersion)
         if (runServerJar != null)
-            serverJar(runDirectory.file(runServerJar as String))
+            runJar(runDirectory.file(runServerJar))
         runDirectory.set(file(runDirectoryDir))
     }
     shadowJar {
