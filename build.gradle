@@ -14,6 +14,7 @@ def mcVersion = "1.8.8"
 bukkit {
     main = "cc.happyareabean.mcdevtoolbox.MCDevToolbox"
     authors = ['HappyAreaBean']
+    apiVersion = 1.13
     generateLibrariesJson = false
 }
 
@@ -41,19 +42,18 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
-String runVersion = project.hasProperty('runPaper.runVersion') ? property('runPaper.runVersion') : mcVersion
-String runDirectoryDir = project.hasProperty('runPaper.runDirectory') ? property('runPaper.runDirectory') : "${project.rootProject.projectDir}/.run"
-String runServerJar = project.hasProperty('runPaper.serverJar') ? property('runPaper.serverJar') : null
 
 tasks {
     runServer {
-        // Configure the Minecraft version for our task.
-        // This is the only required configuration besides applying the plugin.
-        // Your plugin's jar (or shadowJar if present) will be used automatically.
-        minecraftVersion(runVersion)
-        if (runServerJar != null)
-            runJar(runDirectory.file(runServerJar))
-        runDirectory.set(file(runDirectoryDir))
+        environment("SERV_VER", mcVersion)
+        environment("SERV_WORKDIR", ".run")
+        environment("SERV_JAR", null)
+
+        minecraftVersion(System.getenv("SERV_VER").toString())
+
+        if (System.getenv("SERV_JAR") != null)
+            runJar(runDirectory.file(System.getenv("SERV_JAR")))
+        runDirectory.set(file("${project.projectDir}/" + System.getenv('SERV_WORKDIR')))
     }
     shadowJar {
         archiveClassifier.set('')
