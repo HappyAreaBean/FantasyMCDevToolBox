@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'cc.happyareabean'
-version = '1.0.0'
+version = '1.0.1'
 
 def mcVersion = "1.8.8"
 
