@@ -18,7 +18,6 @@ import revxrsal.commands.annotation.DefaultFor;
 import revxrsal.commands.annotation.Optional;
 import revxrsal.commands.annotation.Subcommand;
 import revxrsal.commands.bukkit.BukkitCommandActor;
-import revxrsal.commands.bukkit.annotation.CommandPermission;
 import revxrsal.commands.help.CommandHelp;
 
 import java.io.File;
@@ -31,7 +30,6 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 @Command({"inv", "finv"})
-@CommandPermission("fantasymcdevtoolbox.admin")
 public class InventoryCommand {
 
 	@DefaultFor("~")

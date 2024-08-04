@@ -1,5 +1,6 @@
 package cc.happyareabean.mcdevtoolbox;
 
+import cc.happyareabean.mcdevtoolbox.commmands.EnchantItemCommand;
 import cc.happyareabean.mcdevtoolbox.commmands.GMCommand;
 import cc.happyareabean.mcdevtoolbox.commmands.InventoryCommand;
 import cc.happyareabean.mcdevtoolbox.commmands.MOPCommand;
@@ -56,7 +57,8 @@ public class MCDevToolbox extends JavaPlugin {
                 new MOPCommand(),
                 new GMCommand(),
                 new ReadFromFileCommand(),
-                new InventoryCommand()
+                new InventoryCommand(),
+                new EnchantItemCommand()
         );
     }
 
