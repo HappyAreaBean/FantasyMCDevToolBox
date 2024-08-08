@@ -65,7 +65,7 @@ public class MCDInventory {
 
             Inventory inventory = inventoryConfig.getInventory();
 
-            this.inventory.put(name, inventory);
+            this.inventory.put(name, new Inventory(name, inventory.getContents(), inventory.getArmor()));
         }
     }
 
