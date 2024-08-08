@@ -9,7 +9,7 @@ plugins {
 group = 'cc.happyareabean'
 version = '1.0.1'
 
-def mcVersion = "1.8.8"
+def mcVersion = "1.20.5"
 
 bukkit {
     main = "cc.happyareabean.mcdevtoolbox.MCDevToolbox"
