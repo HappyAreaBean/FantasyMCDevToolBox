@@ -1,5 +1,11 @@
 package cc.happyareabean.mcdevtoolbox.utils;
 
+import com.cryptomorin.xseries.XEnchantment;
+import com.cryptomorin.xseries.profiles.builder.XSkull;
+import com.cryptomorin.xseries.profiles.objects.Profileable;
+import com.cryptomorin.xseries.reflection.XReflection;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -11,8 +17,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ItemBuilder implements Listener, Cloneable {
 
@@ -90,7 +98,14 @@ public class ItemBuilder implements Listener, Cloneable {
      */
     public ItemBuilder unbreakable(boolean unbreakable) {
         final ItemMeta meta = itemStack.getItemMeta();
-        meta.spigot().setUnbreakable(unbreakable);
+
+        if (XReflection.supports(10)) {
+            meta.setUnbreakable(!meta.isUnbreakable());
+        } else {
+            itemStack = NBTEditor.set(itemStack, unbreakable, "Unbreakable");
+            return this;
+        }
+
         itemStack.setItemMeta(meta);
         return this;
     }
@@ -103,7 +118,16 @@ public class ItemBuilder implements Listener, Cloneable {
      */
     public ItemBuilder unbreakable() {
         final ItemMeta meta = itemStack.getItemMeta();
-        meta.spigot().setUnbreakable(!meta.spigot().isUnbreakable());
+
+        if (XReflection.supports(10)) {
+            meta.setUnbreakable(!meta.isUnbreakable());
+        } else {
+            boolean unbreakable = NBTEditor.getBoolean(itemStack, "Unbreakable");
+
+            itemStack = NBTEditor.set(itemStack, !unbreakable, "Unbreakable");
+            return this;
+        }
+
         itemStack.setItemMeta(meta);
         return this;
     }
@@ -148,21 +172,46 @@ public class ItemBuilder implements Listener, Cloneable {
             throw new IllegalArgumentException("color() only applicable for leather armor!");
     }
 
-    public ItemBuilder skull(String owner) {
-        if (itemStack.getType() == Material.SKULL_ITEM && itemStack.getDurability() == (byte) 3) {
-            SkullMeta skullMeta = (SkullMeta) itemStack.getItemMeta();
-            skullMeta.setOwner(owner);
-            itemStack.setItemMeta(skullMeta);
-            return this;
-        } else {
-            throw new IllegalArgumentException("skull() only applicable for human skull item!");
+    public ItemBuilder head(UUID playerUUID) {
+        ItemMeta meta = XSkull.of(itemStack.getItemMeta()).profile(Profileable.of(playerUUID)).apply();
+        itemStack.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder headTexture(String texture) {
+        if (texture != null) {
+            SkullMeta hm = (SkullMeta) itemStack.getItemMeta();
+            GameProfile profile = new GameProfile(new UUID(texture.hashCode(), texture.hashCode()), null);
+            profile.getProperties().put("textures", new Property("Value", texture));
+
+            try{
+                Field profileField = hm.getClass().getDeclaredField("profile");
+                profileField.setAccessible(true);
+                profileField.set(hm, profile);
+            } catch(NoSuchFieldException | IllegalArgumentException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
+            itemStack.setItemMeta(hm);
         }
+        return this;
+    }
+
+    public ItemBuilder skull(String owner) {
+        try {
+            SkullMeta im = (SkullMeta) itemStack.getItemMeta();
+            im.setOwner(owner);
+            itemStack.setItemMeta(im);
+        } catch (ClassCastException e) {
+            e.printStackTrace();
+        }
+        return this;
     }
 
     public ItemBuilder shiny() {
         ItemMeta meta = this.itemStack.getItemMeta();
 
-        meta.addEnchant(Enchantment.PROTECTION_FIRE, 1, false);
+        meta.addEnchant(XEnchantment.UNBREAKING.getEnchant(), 1, false);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         return this;
     }
