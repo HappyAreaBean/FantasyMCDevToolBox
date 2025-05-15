@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -34,7 +36,7 @@ import org.bukkit.inventory.meta.SkullMeta;
  * Github: https://github.com/BananaPuncher714/NBTEditor
  * Spigot: https://www.spigotmc.org/threads/269621/
  *
- * @version 7.19.3
+ * @version 7.19.8
  * @author BananaPuncher714
  */
 public final class NBTEditor {
@@ -51,6 +53,7 @@ public final class NBTEditor {
     private static Field skullProfile;
     private static final String VERSION;
     private static final MinecraftVersion LOCAL_VERSION;
+    private static final String BUKKIT_VERSION;
 
     public static final Type COMPOUND = Type.COMPOUND;
     public static final Type LIST = Type.LIST;
@@ -62,13 +65,15 @@ public final class NBTEditor {
     static {
         String cbPackage = Bukkit.getServer().getClass().getPackage().getName();
         String detectedVersion = cbPackage.substring( cbPackage.lastIndexOf( '.' ) + 1 );
+        String bukkitVersion = Bukkit.getServer().getBukkitVersion();
         if ( !detectedVersion.startsWith( "v" ) ) {
             // Paper or something...
-            detectedVersion = Bukkit.getServer().getBukkitVersion();
+            detectedVersion = bukkitVersion;
         }
 
         VERSION = detectedVersion;
         LOCAL_VERSION = MinecraftVersion.get( VERSION );
+        BUKKIT_VERSION = bukkitVersion;
 
         classCache = new HashMap< ClassId, Class< ? > >();
         methodCache = new HashMap< MethodId, Method >();
@@ -91,24 +96,10 @@ public final class NBTEditor {
                 new ReflectionTarget.v1_20_R1().setClassFetcher( NBTEditor::getNMSClass ),
                 new ReflectionTarget.v1_20_R2().setClassFetcher( NBTEditor::getNMSClass ),
                 new ReflectionTarget.v1_20_R3().setClassFetcher( NBTEditor::getNMSClass ),
-                new ReflectionTarget.v1_20_R4().setClassFetcher( NBTEditor::getNMSClass )
+                new ReflectionTarget.v1_20_R4().setClassFetcher( NBTEditor::getNMSClass ),
+                new ReflectionTarget.v1_21_R1().setClassFetcher( NBTEditor::getNMSClass ),
+                new ReflectionTarget.v1_21_R4().setClassFetcher( NBTEditor::getNMSClass )
         ) );
-
-        for ( ReflectionTarget target : reflectionTargets ) {
-            if ( target.getVersion().lessThanOrEqualTo( LOCAL_VERSION ) ) {
-                try {
-                    Method method = target.fetchDeclaredMethod( MethodId.setCraftMetaSkullProfile );
-
-                    if ( method != null ) {
-                        methodCache.put( MethodId.setCraftMetaSkullProfile, method );
-
-                        break;
-                    }
-                } catch ( ClassNotFoundException | NoSuchMethodException | SecurityException e ) {
-                    e.printStackTrace();
-                }
-            }
-        }
 
         NBTClasses = new HashMap< Class< ? >, Class< ? > >();
         try {
@@ -162,7 +153,22 @@ public final class NBTEditor {
 
         NBTTagFieldCache = new HashMap< Class< ? >, Field >();
         try {
-            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_17 ) ) {
+            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_21_R4 ) ) {
+                NBTTagFieldCache.put( NBTClasses.get( Byte.class ), NBTClasses.get( Byte.class ).getDeclaredField( "v" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Boolean.class ), NBTClasses.get( Boolean.class ).getDeclaredField( "v" ) );
+                NBTTagFieldCache.put( NBTClasses.get( String.class ), NBTClasses.get( String.class ).getDeclaredField( "b" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Double.class ), NBTClasses.get( Double.class ).getDeclaredField( "c" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Integer.class ), NBTClasses.get( Integer.class ).getDeclaredField( "b" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Long.class ), NBTClasses.get( Long.class ).getDeclaredField( "b" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Float.class ), NBTClasses.get( Float.class ).getDeclaredField( "c" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Short.class ), NBTClasses.get( Short.class ).getDeclaredField( "b" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Class.forName( "[B" ) ), NBTClasses.get( Class.forName( "[B" ) ).getDeclaredField( "c" ) );
+                NBTTagFieldCache.put( NBTClasses.get( Class.forName( "[I" ) ), NBTClasses.get( Class.forName( "[I" ) ).getDeclaredField( "c" ) );
+
+                for ( Field field : NBTTagFieldCache.values() ) {
+                    field.setAccessible( true );
+                }
+            } else if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_17 ) ) {
                 NBTTagFieldCache.put( NBTClasses.get( Byte.class ), NBTClasses.get( Byte.class ).getDeclaredField( "x" ) );
                 NBTTagFieldCache.put( NBTClasses.get( Boolean.class ), NBTClasses.get( Boolean.class ).getDeclaredField( "x" ) );
                 NBTTagFieldCache.put( NBTClasses.get( String.class ), NBTClasses.get( String.class ).getDeclaredField( "A" ) );
@@ -189,7 +195,10 @@ public final class NBTEditor {
         }
 
         try {
-            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_17 ) ) {
+            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_21_R4 ) ) {
+                NBTListData = getNMSClass( ClassId.NBTTagList ).getDeclaredField( "v" );
+                NBTCompoundMap = getNMSClass( ClassId.NBTTagCompound ).getDeclaredField( "x" );
+            } else if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_17 ) ) {
                 NBTListData = getNMSClass( ClassId.NBTTagList ).getDeclaredField( "c" );
                 NBTCompoundMap = getNMSClass( ClassId.NBTTagCompound ).getDeclaredField( "x" );
             } else {
@@ -252,6 +261,9 @@ public final class NBTEditor {
             }
         }
 
+        // Prevent any additional reflection lookups, since we know it doesn't exist
+        methodCache.put( name, null );
+
         return null;
     }
 
@@ -300,7 +312,7 @@ public final class NBTEditor {
             }
         }
 
-        throw new IllegalArgumentException( "No such class exists: " + id );
+        return null;
     }
 
     private static String getMatch( String string, String regex ) {
@@ -315,8 +327,18 @@ public final class NBTEditor {
 
     // For some reason, 1.11 and 1.12 have a constructor for ItemStack that accepts an NBTTagCompound
     private static Object createItemStack( Object compound ) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException {
-        if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-            return getMethod( MethodId.createStack ).invoke( null, registryAccess(), compound );
+        if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_21_4 ) ) {
+            Optional< ? > optional = ( Optional< ? > ) getMethod( MethodId.createStackOptional ).invoke( null, registryAccess(), compound );
+            return optional.get();
+        } else if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
+            Method createStack = getMethod( MethodId.createStack );
+            if ( createStack.getParameterCount() == 2 ) {
+                // RegistryAccess, NBTagCompound
+                return getMethod( MethodId.createStack ).invoke( null, registryAccess(), compound );
+            } else {
+                // NBTTagCompound
+                return getMethod( MethodId.createStack ).invoke( null, compound );
+            }
         } else if ( LOCAL_VERSION == MinecraftVersion.v1_11 || LOCAL_VERSION == MinecraftVersion.v1_12 ) {
             return getConstructor( ClassId.ItemStack ).newInstance( compound );
         } else {
@@ -368,9 +390,17 @@ public final class NBTEditor {
             e1.printStackTrace();
         }
 
-        if ( methodCache.containsKey( MethodId.setCraftMetaSkullProfile ) ) {
+        final Method setSkullResolvableProfile = getMethod( MethodId.setCraftMetaSkullResolvableProfile );
+        Method setSkullProfile = getMethod( MethodId.setCraftMetaSkullProfile );
+        if ( setSkullResolvableProfile != null ) {
             try {
-                getMethod( MethodId.setCraftMetaSkullProfile ).invoke( headMeta, profile );
+                setSkullResolvableProfile.invoke( headMeta, getConstructor( ClassId.ResolvableProfile ).newInstance( profile ) );
+            } catch ( IllegalAccessException | IllegalArgumentException | InvocationTargetException | InstantiationException e ) {
+                e.printStackTrace();
+            }
+        } else if ( setSkullProfile != null ) {
+            try {
+                setSkullProfile.invoke( headMeta, profile );
             } catch ( IllegalAccessException | IllegalArgumentException | InvocationTargetException e ) {
                 e.printStackTrace();
             }
@@ -401,6 +431,13 @@ public final class NBTEditor {
         }
         try {
             Object profile = skullProfile.get( meta );
+
+            Class< ? > resolvableProfile = getNMSClass( ClassId.ResolvableProfile );
+            if ( resolvableProfile != null && resolvableProfile.isInstance( profile ) ) {
+                final Method getGameProfile = getMethod( MethodId.getResolvableProfileGameProfile );
+                profile = getGameProfile.invoke( profile );
+            }
+
             if ( profile == null ) {
                 return null;
             }
@@ -434,8 +471,11 @@ public final class NBTEditor {
         try {
             Object compound = getCompound( item );
 
-            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                compound = getMethod( MethodId.compoundGet ).invoke( compound, "components" );
+            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) && !BUKKIT_VERSION.startsWith( "1.20.4" ) && !BUKKIT_VERSION.startsWith( "1.20.5" ) ) {
+                // Apply the components tag since all items should contain this if not already present, since 1.20.6
+                if ( keys.length > 0 && keys[ 0 ] != Type.ITEMSTACK_COMPONENTS ) {
+                    compound = getMethod( MethodId.compoundGet ).invoke( compound, "components" );
+                }
             }
 
             return getTag( compound, keys );
@@ -451,13 +491,18 @@ public final class NBTEditor {
             return null;
         }
         try {
-            Object stack = null;
-            stack = getMethod( MethodId.asNMSCopy ).invoke( null, item );
+            Object stack = getMethod( MethodId.asNMSCopy ).invoke( null, item );
 
             Object tag = null;
 
+
+            Method saveOptional = null;
             if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                tag = getMethod( MethodId.saveOptional ).invoke( stack, registryAccess() );
+                saveOptional = getMethod( MethodId.saveOptional );
+            }
+
+            if ( saveOptional != null ) {
+                tag = saveOptional.invoke( stack, registryAccess() );
             } else {
                 if ( getMethod( MethodId.itemHasTag ).invoke( stack ).equals( true ) ) {
                     tag = getMethod( MethodId.getItemTag ).invoke( stack );
@@ -493,8 +538,13 @@ public final class NBTEditor {
 
             Object tag = getNMSClass( ClassId.NBTTagCompound ).newInstance();
 
+            Method saveOptional = null;
             if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                tag = getMethod( MethodId.saveOptional ).invoke( stack, registryAccess() );
+                saveOptional = getMethod( MethodId.saveOptional );
+            }
+
+            if ( saveOptional != null ) {
+                tag = saveOptional.invoke( stack, registryAccess() );
             } else {
                 tag = getMethod( MethodId.itemSave ).invoke( stack, tag );
             }
@@ -528,8 +578,13 @@ public final class NBTEditor {
 
             Object tag = null;
 
+            Method saveOptional = null;
             if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                tag = getMethod( MethodId.saveOptional ).invoke( stack, registryAccess() );
+                saveOptional = getMethod( MethodId.saveOptional );
+            }
+
+            if ( saveOptional != null ) {
+                tag = saveOptional.invoke( stack, registryAccess() );
             } else {
                 if ( getMethod( MethodId.itemHasTag ).invoke( stack ).equals( true ) ) {
                     tag = getMethod( MethodId.getItemTag ).invoke( stack );
@@ -541,16 +596,19 @@ public final class NBTEditor {
             if ( keys.length == 0 && value instanceof NBTCompound ) {
                 tag = ( ( NBTCompound ) value ).tag;
             } else {
-                if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                    List< Object > keyList = new ArrayList< Object >( Arrays.asList( keys ) );
-                    keyList.add( 0, "components" );
-                    keys = keyList.toArray();
+                if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) && !BUKKIT_VERSION.startsWith( "1.20.4" ) && !BUKKIT_VERSION.startsWith( "1.20.5" ) ) {
+                    // Apply the components tag since all items should contain this if not already present, since 1.20.6
+                    if ( keys.length > 0 && keys[ 0 ] != Type.ITEMSTACK_COMPONENTS ) {
+                        List< Object > keyList = new ArrayList< Object >( Arrays.asList( keys ) );
+                        keyList.add( 0, "components" );
+                        keys = keyList.toArray();
+                    }
                 }
 
                 setTag( tag, value, keys );
             }
 
-            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
+            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) && !BUKKIT_VERSION.startsWith( "1.20.4" ) && !BUKKIT_VERSION.startsWith( "1.20.5" ) ) {
                 return ( ItemStack ) getMethod( MethodId.asBukkitCopy ).invoke( null, createItemStack( tag ) );
             } else {
                 getMethod( MethodId.setItemTag ).invoke( stack, tag );
@@ -575,7 +633,7 @@ public final class NBTEditor {
             return null;
         }
         try {
-            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
+            if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) && !BUKKIT_VERSION.startsWith( "1.20.4" ) && !BUKKIT_VERSION.startsWith( "1.20.5" ) ) {
                 return ( ItemStack ) getMethod( MethodId.asBukkitCopy ).invoke( null, createItemStack( compound.tag ) );
             } else {
                 Object tag = compound.tag;
@@ -737,7 +795,14 @@ public final class NBTEditor {
             Object tag;
 
             if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                tag = getMethod( MethodId.getTileTag ).invoke( tileEntity, registryAccess() );
+                Method getTileTag = getMethod( MethodId.getTileTag );
+                if ( getTileTag.getParameterCount() == 1 ) {
+                    // RegistryAccess
+                    tag = getTileTag.invoke( tileEntity, registryAccess() );
+                } else {
+                    // No params
+                    tag = getTileTag.invoke( tileEntity );
+                }
             } else if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_18_R1 ) ) {
                 tag = getMethod( MethodId.getTileTag ).invoke( tileEntity );
             } else {
@@ -782,7 +847,14 @@ public final class NBTEditor {
             Object tag;
 
             if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                tag = getMethod( MethodId.getTileTag ).invoke( tileEntity, registryAccess() );
+                Method getTileTag = getMethod( MethodId.getTileTag );
+                if ( getTileTag.getParameterCount() == 1 ) {
+                    // RegistryAccess
+                    tag = getTileTag.invoke( tileEntity, registryAccess() );
+                } else {
+                    // No params
+                    tag = getTileTag.invoke( tileEntity );
+                }
             } else if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_18_R1 ) ) {
                 tag = getMethod( MethodId.getTileTag ).invoke( tileEntity );
             } else {
@@ -828,7 +900,14 @@ public final class NBTEditor {
             Object tag;
 
             if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                tag = getMethod( MethodId.getTileTag ).invoke( tileEntity, registryAccess() );
+                Method getTileTag = getMethod( MethodId.getTileTag );
+                if ( getTileTag.getParameterCount() == 1 ) {
+                    // RegistryAccess
+                    tag = getTileTag.invoke( tileEntity, registryAccess() );
+                } else {
+                    // No params
+                    tag = getTileTag.invoke( tileEntity );
+                }
             } else if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_18_R1 ) ) {
                 tag = getMethod( MethodId.getTileTag ).invoke( tileEntity );
             } else {
@@ -843,7 +922,14 @@ public final class NBTEditor {
             }
 
             if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20_R4 ) ) {
-                getMethod( MethodId.setTileTag ).invoke( tileEntity, tag, registryAccess() );
+                Method setTileTag = getMethod( MethodId.setTileTag );
+                if ( setTileTag.getParameterCount() == 2 ) {
+                    // NBTTagCompound, RegistryAccess
+                    setTileTag.invoke( tileEntity, tag, registryAccess() );
+                } else {
+                    // NBTTagCompound
+                    setTileTag.invoke( tileEntity, tag );
+                }
             } else if ( LOCAL_VERSION == MinecraftVersion.v1_16 ) {
                 getMethod( MethodId.setTileTag ).invoke( tileEntity, getMethod( MethodId.getTileType ).invoke( nmsWorld, blockPosition ), tag );
             } else {
@@ -877,6 +963,7 @@ public final class NBTEditor {
 
             Object tileEntity = getMethod( MethodId.getTileEntity ).invoke( nmsWorld, blockPosition );
 
+            // TODO This may use the new ResolvableProfile in 1.21+
             if ( getNMSClass( ClassId.TileEntitySkull ).isInstance( tileEntity) ) {
                 getMethod( MethodId.setGameProfile ).invoke( tileEntity, profile );
             } else {
@@ -1124,6 +1211,9 @@ public final class NBTEditor {
         Object compound;
         if ( object instanceof ItemStack ) {
             compound = getCompound( ( ItemStack ) object );
+            List< Object > keyList = new ArrayList< Object >( Arrays.asList( keys ) );
+            keyList.add( 0, NBTEditor.ITEMSTACK_COMPONENTS );
+            keys = keyList.toArray();
         } else if ( object instanceof Entity ) {
             compound = getCompound( ( Entity ) object );
         } else if ( object instanceof Block ) {
@@ -1137,18 +1227,22 @@ public final class NBTEditor {
         try {
             NBTCompound nbtCompound = getNBTTag( compound, keys );
 
-            Object tag = nbtCompound.tag;
-            if ( getNMSClass( ClassId.NBTTagCompound ).isInstance( tag ) ) {
-                return ( Collection< String > ) getMethod( MethodId.compoundKeys ).invoke( tag );
+            if ( nbtCompound != null && nbtCompound.tag != null ) {
+                Object tag = nbtCompound.tag;
+                if ( getNMSClass( ClassId.NBTTagCompound ).isInstance( tag ) ) {
+                    return ( Collection< String > ) getMethod( MethodId.compoundKeys ).invoke( tag );
+                } else {
+                    return Collections.EMPTY_LIST;
+                }
             } else {
-                return null;
+                return Collections.EMPTY_LIST;
             }
 
         } catch ( IllegalAccessException | IllegalArgumentException | InvocationTargetException e ) {
             e.printStackTrace();
         }
 
-        return null;
+        return Collections.EMPTY_LIST;
     }
 
     /**
@@ -1584,12 +1678,24 @@ public final class NBTEditor {
         v1_19_R2,
         v1_19_R3,
         v1_20_R1,
-        v1_20_R2,
-        v1_20_R3,
-        v1_20_R4,
         v1_20( false ),
+        v1_20_1( false ),
+        v1_20_R2,
+        v1_20_2( false ),
+        v1_20_R3,
+        v1_20_3( false ),
+        v1_20_R4,
+        v1_20_4( false ),
+        v1_20_5( false ),
+        v1_20_6( false ),
         v1_21_R1,
         v1_21( false ),
+        v1_21_R2,
+        v1_21_3( false ),
+        v1_21_R3,
+        v1_21_4( false ),
+        v1_21_R4,
+        v1_21_5( false ),
         v1_22;
 
         private boolean implemented = true;
@@ -1614,13 +1720,24 @@ public final class NBTEditor {
         public static MinecraftVersion get( String v ) {
             v = v.replace( '.', '_' );
 
-            MinecraftVersion lastImplemented = null;
-            for ( MinecraftVersion k : MinecraftVersion.values() ) {
-                if ( k.implemented ) {
-                    lastImplemented = k;
-                }
+            for ( int i = MinecraftVersion.values().length; i > 0; --i ) {
+                MinecraftVersion k = MinecraftVersion.values()[ i - 1 ];
+
                 if ( v.contains( k.name().substring( 1 ) ) ) {
-                    return lastImplemented;
+                    return getLastImplemented( k );
+                }
+            }
+
+            // Return the latest version if none was found
+            return MinecraftVersion.values()[ MinecraftVersion.values().length - 1 ];
+        }
+
+        private static MinecraftVersion getLastImplemented( MinecraftVersion v ) {
+            for ( int i = v.ordinal(); i >= 0; --i ) {
+                MinecraftVersion version = MinecraftVersion.values()[ i ];
+
+                if ( version.implemented ) {
+                    return version;
                 }
             }
             return null;
@@ -1655,7 +1772,9 @@ public final class NBTEditor {
         PropertyMap,
         CraftServer,
         MinecraftServer,
-        RegistryAccess
+        RegistryAccess,
+        ResolvableProfile,
+        IRegistryCustomDimension
     }
 
     private enum MethodId {
@@ -1713,7 +1832,14 @@ public final class NBTEditor {
         registryAccess,
 
         // Introduced in 1.20.5
-        saveOptional
+        saveOptional,
+
+        // Added in 1.21, some paper build
+        setCraftMetaSkullResolvableProfile,
+        getResolvableProfileGameProfile,
+
+        // Added in 1.21.5
+        createStackOptional
     }
 
     private static abstract class ReflectionTarget implements Comparable< ReflectionTarget > {
@@ -1723,7 +1849,7 @@ public final class NBTEditor {
         private Function< ClassId, Class< ? > > classFetcher;
 
         private final Map< ClassId, String > classTargets = new HashMap< ClassId, String >();
-        private final Map< MethodId, MethodTarget > methodTargets = new HashMap< MethodId, MethodTarget >();
+        private final Map< MethodId, ConstructorTarget > methodTargets = new HashMap< MethodId, ConstructorTarget >();
         private final Map< ClassId, ConstructorTarget > constructorTargets = new HashMap< ClassId, ConstructorTarget >();
 
         protected ReflectionTarget( MinecraftVersion version ) {
@@ -1744,8 +1870,16 @@ public final class NBTEditor {
             classTargets.put( name, path );
         }
 
-        protected final void addMethod( MethodId name, ClassId clazz, String methodName, Object... params ) {
-            methodTargets.put( name, new MethodTarget( clazz, methodName, params) );
+        protected final MethodTarget addMethod( MethodId name, ClassId clazz, String methodName, Object... params ) {
+            MethodTarget newTarget = new MethodTarget( clazz, methodName, params );
+            methodTargets.put( name, newTarget );
+            return newTarget;
+        }
+
+        protected final ReturnMethodTarget addMethod( MethodId name, ClassId clazz, ClassId returnType, Object... params ) {
+            ReturnMethodTarget newTarget = new ReturnMethodTarget( clazz, returnType, params );
+            methodTargets.put( name, newTarget );
+            return newTarget;
         }
 
         protected final void addConstructor( ClassId clazz, Object... params ) {
@@ -1757,29 +1891,40 @@ public final class NBTEditor {
             return className != null ? Class.forName( className ) : null;
         }
 
-        protected final Method fetchDeclaredMethod( MethodId name ) throws NoSuchMethodException, SecurityException, ClassNotFoundException {
-            MethodTarget target = methodTargets.get( name );
-            if ( target == null ) {
-                return null;
-            }
-
-            Method method = findClass( target.clazz ).getDeclaredMethod( target.name, convert( target.params ) );
-            method.setAccessible( true );
-            return method;
-        }
-
         protected final Method fetchMethod( MethodId name ) throws NoSuchMethodException, SecurityException, ClassNotFoundException {
-            MethodTarget target = methodTargets.get( name );
-            if ( target != null ) {
+            ConstructorTarget constructorTarget = methodTargets.get( name );
+            if ( constructorTarget instanceof MethodTarget ) {
+                MethodTarget target = ( MethodTarget ) constructorTarget;
                 Class< ? > clazz = findClass( target.clazz );
                 Class< ? >[] params = convert( target.params );
                 try {
                     return clazz.getMethod( target.name, params );
                 } catch ( NoSuchMethodException e ) {
-                    Method method = clazz.getDeclaredMethod( target.name, params );
-                    method.setAccessible( true );
-                    return method;
+                    try {
+                        Method method = clazz.getDeclaredMethod( target.name, params );
+                        method.setAccessible( true );
+                        return method;
+                    } catch ( NoSuchMethodException e2 ) {
+                        if ( target.silent ) {
+                            return null;
+                        } else {
+                            throw e;
+                        }
+                    }
                 }
+            } else if ( constructorTarget instanceof ReturnMethodTarget ) {
+                ReturnMethodTarget target = ( ReturnMethodTarget ) constructorTarget;
+                Class< ? > clazz = findClass( target.clazz );
+                Class< ? > returnClazz = findClass( target.returnType );
+                Class< ? >[] params = convert( target.params );
+
+                for ( Method method : clazz.getDeclaredMethods() ) {
+                    if ( method.getReturnType().equals( returnClazz ) && matches( method.getParameterTypes(), params ) ) {
+                        method.setAccessible( true );
+                        return method;
+                    }
+                }
+                return null;
             } else {
                 return null;
             }
@@ -1788,6 +1933,19 @@ public final class NBTEditor {
         protected final Constructor< ? > fetchConstructor( ClassId name ) throws NoSuchMethodException, SecurityException, ClassNotFoundException {
             ConstructorTarget target = constructorTargets.get( name );
             return target != null ? findClass( target.clazz ).getConstructor( convert( target.params ) ) : null;
+        }
+
+        private final boolean matches( Class< ? >[] params, Class< ? >[] find ) {
+            if ( params.length != find.length ) {
+                return false;
+            } else {
+                for ( int i = 0; i < params.length; ++i ) {
+                    if ( !find[ i ].isAssignableFrom( params[ i ] ) ) {
+                        return false;
+                    }
+                }
+                return true;
+            }
         }
 
         private final Class< ? >[] convert( Object[] objects ) throws ClassNotFoundException {
@@ -1827,10 +1985,25 @@ public final class NBTEditor {
 
         private static class MethodTarget extends ConstructorTarget {
             final String name;
+            boolean silent = false;
 
             public MethodTarget( ClassId clazz, String name, Object... params ) {
                 super( clazz, params );
                 this.name = name;
+            }
+
+            public MethodTarget failSilently( boolean silent ) {
+                this.silent = silent;
+                return this;
+            }
+        }
+
+        private static class ReturnMethodTarget extends ConstructorTarget {
+            final ClassId returnType;
+
+            public ReturnMethodTarget( ClassId clazz, ClassId returnType, Object... params ) {
+                super( clazz, params );
+                this.returnType = returnType;
             }
         }
 
@@ -1956,7 +2129,8 @@ public final class NBTEditor {
             protected v1_15() {
                 super( MinecraftVersion.v1_15 );
 
-                addMethod( MethodId.setCraftMetaSkullProfile, ClassId.CraftMetaSkull, "setProfile", ClassId.GameProfile );
+                // Fail silently if this method does not exist in later versions
+                addMethod( MethodId.setCraftMetaSkullProfile, ClassId.CraftMetaSkull, "setProfile", ClassId.GameProfile ).failSilently( MinecraftVersion.v1_21_R1.lessThanOrEqualTo( LOCAL_VERSION ) );
             }
         }
 
@@ -2085,17 +2259,54 @@ public final class NBTEditor {
             protected v1_20_R4() {
                 super( MinecraftVersion.v1_20_R4 );
 
-                addClass( ClassId.MinecraftServer, "net.minecraft.server.MinecraftServer" );
-                addClass( ClassId.RegistryAccess, "net.minecraft.core.HolderLookup$a" );
+                // 1.20.4 and 1.20.5 are also 1_20_R4 but do not have these methods
+                if ( !BUKKIT_VERSION.startsWith( "1.20.4" ) && !BUKKIT_VERSION.startsWith( "1.20.5" ) ) {
+                    addClass( ClassId.MinecraftServer, "net.minecraft.server.MinecraftServer" );
+                    addClass( ClassId.RegistryAccess, "net.minecraft.core.HolderLookup$a" );
+                    addClass( ClassId.ResolvableProfile, "net.minecraft.world.item.component.ResolvableProfile" );
 
-                addMethod( MethodId.getServer, ClassId.CraftServer, "getServer" );
-                addMethod( MethodId.registryAccess, ClassId.MinecraftServer, "bc" );
+                    addMethod( MethodId.getServer, ClassId.CraftServer, "getServer" );
+                    addMethod( MethodId.registryAccess, ClassId.MinecraftServer, "bc" );
 
-                addMethod( MethodId.saveOptional, ClassId.ItemStack, "a", ClassId.RegistryAccess );
-                addMethod( MethodId.createStack, ClassId.ItemStack, "a", ClassId.RegistryAccess, ClassId.NBTTagCompound );
+                    addMethod( MethodId.saveOptional, ClassId.ItemStack, "a", ClassId.RegistryAccess );
+                    addMethod( MethodId.createStack, ClassId.ItemStack, "a", ClassId.RegistryAccess, ClassId.NBTTagCompound );
 
-                addMethod( MethodId.getTileTag, ClassId.TileEntity, "b", ClassId.RegistryAccess );
-                addMethod( MethodId.setTileTag, ClassId.TileEntity, "a", ClassId.NBTTagCompound, ClassId.RegistryAccess );
+                    addMethod( MethodId.getTileTag, ClassId.TileEntity, "b", ClassId.RegistryAccess );
+                    addMethod( MethodId.setTileTag, ClassId.TileEntity, "a", ClassId.NBTTagCompound, ClassId.RegistryAccess );
+                }
+            }
+        }
+
+        private static class v1_21_R1 extends ReflectionTarget {
+            protected v1_21_R1() {
+                super( MinecraftVersion.v1_21_R1 );
+
+                addClass( ClassId.ResolvableProfile, "net.minecraft.world.item.component.ResolvableProfile" );
+                addClass( ClassId.IRegistryCustomDimension, "net.minecraft.core.IRegistryCustom$Dimension" );
+
+                // The old setProfile with GameProfile may be used, so fail silently if that's the case
+                addMethod( MethodId.setCraftMetaSkullResolvableProfile, ClassId.CraftMetaSkull, "setProfile", ClassId.ResolvableProfile ).failSilently( true );
+                addMethod( MethodId.getResolvableProfileGameProfile, ClassId.ResolvableProfile, "f" );
+
+                // v1_21_R1 includes 1.21, 1.21.1 and 1.21.2
+                // but the IRegistryCustom.Dimensions method is different
+                // so, find it dynamically
+                addMethod( MethodId.registryAccess, ClassId.MinecraftServer, ClassId.IRegistryCustomDimension );
+
+                addConstructor( ClassId.ResolvableProfile, ClassId.GameProfile );
+            }
+        }
+
+        private static class v1_21_R4 extends ReflectionTarget {
+            protected v1_21_R4() {
+                super( MinecraftVersion.v1_21_R4 );
+
+                addMethod( MethodId.compoundGet, ClassId.NBTTagCompound, "a", String.class );
+
+                addMethod( MethodId.createStackOptional, ClassId.ItemStack, "a", ClassId.RegistryAccess, ClassId.NBTBase );
+
+                addMethod( MethodId.listSet, ClassId.NBTTagList, "c", int.class, ClassId.NBTBase );
+                addMethod( MethodId.listAdd, ClassId.NBTTagList, "d", int.class, ClassId.NBTBase );
             }
         }
     }
