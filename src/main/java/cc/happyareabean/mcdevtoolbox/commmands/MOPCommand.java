@@ -2,7 +2,7 @@ package cc.happyareabean.mcdevtoolbox.commmands;
 
 import org.bukkit.entity.Player;
 import revxrsal.commands.annotation.Command;
-import revxrsal.commands.bukkit.BukkitCommandActor;
+import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 
 public class MOPCommand {
 
@@ -10,7 +10,7 @@ public class MOPCommand {
     public void mop(BukkitCommandActor actor) {
         actor.requirePlayer();
 
-        Player player = actor.getAsPlayer();
+        Player player = actor.asPlayer();
 
         if (!player.isOp()) {
             player.setOp(true);

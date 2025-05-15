@@ -8,7 +8,7 @@ import org.apache.commons.lang.BooleanUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import revxrsal.commands.annotation.Command;
-import revxrsal.commands.bukkit.BukkitCommandActor;
+import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 
 public class EnchantItemCommand {
 

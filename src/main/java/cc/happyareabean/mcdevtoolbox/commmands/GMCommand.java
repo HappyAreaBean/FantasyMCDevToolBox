@@ -3,7 +3,7 @@ package cc.happyareabean.mcdevtoolbox.commmands;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import revxrsal.commands.annotation.Command;
-import revxrsal.commands.bukkit.BukkitCommandActor;
+import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 
 public class GMCommand {
 
@@ -11,7 +11,7 @@ public class GMCommand {
     public void gmc(BukkitCommandActor actor) {
         actor.requirePlayer();
 
-        Player player = actor.getAsPlayer();
+        Player player = actor.asPlayer();
         player.setGameMode(GameMode.CREATIVE);
     }
 
@@ -19,7 +19,7 @@ public class GMCommand {
     public void gms(BukkitCommandActor actor) {
         actor.requirePlayer();
 
-        Player player = actor.getAsPlayer();
+        Player player = actor.asPlayer();
         player.setGameMode(GameMode.SURVIVAL);
     }
 
@@ -27,7 +27,7 @@ public class GMCommand {
     public void gma(BukkitCommandActor actor) {
         actor.requirePlayer();
 
-        Player player = actor.getAsPlayer();
+        Player player = actor.asPlayer();
         player.setGameMode(GameMode.ADVENTURE);
     }
 
@@ -35,7 +35,7 @@ public class GMCommand {
     public void gmsp(BukkitCommandActor actor) {
         actor.requirePlayer();
 
-        Player player = actor.getAsPlayer();
+        Player player = actor.asPlayer();
         player.setGameMode(GameMode.SPECTATOR);
     }
 

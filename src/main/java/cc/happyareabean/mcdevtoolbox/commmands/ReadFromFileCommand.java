@@ -1,36 +1,38 @@
 package cc.happyareabean.mcdevtoolbox.commmands;
 
 import cc.happyareabean.mcdevtoolbox.MCDevToolbox;
+import cc.happyareabean.mcdevtoolbox.annotations.ItemFilesSuggestion;
+import cc.happyareabean.mcdevtoolbox.utils.CommandUtils;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.entity.Player;
-import revxrsal.commands.annotation.AutoComplete;
 import revxrsal.commands.annotation.Command;
-import revxrsal.commands.annotation.DefaultFor;
+import revxrsal.commands.annotation.CommandPlaceholder;
+import revxrsal.commands.annotation.Default;
 import revxrsal.commands.annotation.Optional;
+import revxrsal.commands.annotation.Range;
 import revxrsal.commands.annotation.Subcommand;
 import revxrsal.commands.annotation.Switch;
-import revxrsal.commands.bukkit.BukkitCommandActor;
+import revxrsal.commands.bukkit.actor.BukkitCommandActor;
+import revxrsal.commands.help.Help;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static revxrsal.commands.util.Strings.colorize;
-
 @Command("readfromfile")
 public class ReadFromFileCommand {
 
-    @DefaultFor("~")
-    @Subcommand("help")
-    public void help(BukkitCommandActor actor) {
-        actor.reply(colorize("&c/readfromfile <item> <file>"));
+    @CommandPlaceholder
+    public void help(BukkitCommandActor actor,
+                     @Range(min = 1) @Default("1") int page,
+                     Help.RelatedCommands<BukkitCommandActor> commands) {
+        CommandUtils.handleHelpMenu(actor, page, commands, 6, "readfromfile ");
     }
 
     @SneakyThrows
     @Subcommand("item")
-    @AutoComplete("@itemFiles")
-    public void item(BukkitCommandActor actor, String fileName, @Switch("c") @Optional boolean clearInventory) {
+    public void item(BukkitCommandActor actor, @ItemFilesSuggestion String fileName, @Switch("c") @Optional boolean clearInventory) {
         Player player = actor.requirePlayer();
 
         if (clearInventory) {
@@ -45,14 +47,14 @@ public class ReadFromFileCommand {
             return;
         }
 
-        actor.reply(colorize("&aGenerate your items... &7[%s]".formatted(fileName)));
+        actor.reply("&aGenerate your items... &7[%s]".formatted(fileName));
         List<String> strings = FileUtils.readLines(file, StandardCharsets.UTF_8);
         strings.forEach(string -> {
 
             player.performCommand("give %s %s".formatted(player.getName(), string));
 
         });
-        actor.reply(colorize("&6Completed! &7[%s]".formatted(strings.size())));
+        actor.reply("&6Completed! &7[%s]".formatted(strings.size()));
     }
 
 }

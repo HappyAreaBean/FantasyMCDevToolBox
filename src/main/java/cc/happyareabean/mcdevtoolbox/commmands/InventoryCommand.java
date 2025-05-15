@@ -1,24 +1,24 @@
 package cc.happyareabean.mcdevtoolbox.commmands;
 
 import cc.happyareabean.mcdevtoolbox.MCDevToolbox;
+import cc.happyareabean.mcdevtoolbox.annotations.MCDInventorySuggestion;
 import cc.happyareabean.mcdevtoolbox.inventory.Inventory;
 import cc.happyareabean.mcdevtoolbox.inventory.InventoryConfig;
 import cc.happyareabean.mcdevtoolbox.inventory.MCDInventory;
 import cc.happyareabean.mcdevtoolbox.utils.CC;
-import cc.happyareabean.mcdevtoolbox.utils.HelpUtils;
+import cc.happyareabean.mcdevtoolbox.utils.CommandUtils;
 import cc.happyareabean.paste.PasteFactory;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import revxrsal.commands.annotation.AutoComplete;
 import revxrsal.commands.annotation.Command;
+import revxrsal.commands.annotation.CommandPlaceholder;
 import revxrsal.commands.annotation.Default;
-import revxrsal.commands.annotation.DefaultFor;
-import revxrsal.commands.annotation.Optional;
+import revxrsal.commands.annotation.Range;
 import revxrsal.commands.annotation.Subcommand;
-import revxrsal.commands.bukkit.BukkitCommandActor;
-import revxrsal.commands.help.CommandHelp;
+import revxrsal.commands.bukkit.actor.BukkitCommandActor;
+import revxrsal.commands.help.Help;
 
 import java.io.File;
 import java.net.URL;
@@ -32,10 +32,11 @@ import java.util.stream.Collectors;
 @Command({"inv", "finv"})
 public class InventoryCommand {
 
-	@DefaultFor("~")
-	public void inv(BukkitCommandActor actor, CommandHelp<String> helpEntries, @Optional @Default("1") int page) {
-		HelpUtils.buildCommandHelp(helpEntries, page, null)
-				.forEach(actor::reply);
+	@CommandPlaceholder
+	public void help(BukkitCommandActor actor,
+					 @Range(min = 1) @Default("1") int page,
+					 Help.RelatedCommands<BukkitCommandActor> commands) {
+		CommandUtils.handleHelpMenu(actor, page, commands, 8, "finv ");
 	}
 
 	@Subcommand("list")
@@ -115,13 +116,12 @@ public class InventoryCommand {
 	}
 
 	@Subcommand("upload")
-	@AutoComplete("@mcdInventory")
-	public void upload(BukkitCommandActor actor, String invName) {
+	public void upload(BukkitCommandActor actor, @MCDInventorySuggestion String invName) {
 		MCDInventory mcdInventory = MCDevToolbox.getInstance().getInventory();
 		File file = mcdInventory.getInventoryFile(invName);
 
 		if (!file.exists()) {
-			actor.dispatch("finv list");
+			this.list(actor);
 			return;
 		}
 
