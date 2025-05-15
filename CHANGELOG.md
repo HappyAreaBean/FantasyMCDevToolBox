@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3](https://github.com/HappyAreaBean/FantasyMCDevToolBox/compare/v1.0.2..v1.0.3) - 2025-05-15
+
+### 🚀 Features
+
+- lamp v4 and better help command - ([2a923d2](https://github.com/HappyAreaBean/FantasyMCDevToolBox/commit/2a923d2e41bc4d97704227c7331c864e205e22b6)) - HappyAreaBean
+
+### 📚 Documentation
+
+- add CHANGELOG.md - ([6dc30ff](https://github.com/HappyAreaBean/FantasyMCDevToolBox/commit/6dc30ff0ab874c0c292458319af586e91c462076)) - HappyAreaBean
+
+### ⚙️ Miscellaneous Tasks
+
+- update NBTEditor - ([c384a68](https://github.com/HappyAreaBean/FantasyMCDevToolBox/commit/c384a68b8a44dafde2f3bf960c61f0f1b2821178)) - HappyAreaBean
+- update NBTEditor - ([ad9b9af](https://github.com/HappyAreaBean/FantasyMCDevToolBox/commit/ad9b9afca9ce6f0637b03df2645d4a0b19ebff44)) - HappyAreaBean
+
+### Build
+
+- **(deps)** update dependencies - ([7b67e83](https://github.com/HappyAreaBean/FantasyMCDevToolBox/commit/7b67e83be0a2a2586073908a5462babef86e787d)) - HappyAreaBean
+
 ## [1.0.2](https://github.com/HappyAreaBean/FantasyMCDevToolBox/compare/v1.0.1..v1.0.2) - 2024-08-08
 
 ### 🚀 Features
